@@ -1,0 +1,96 @@
+imports:
+  - { resource: ../../../../src/Mb/Shared/Infrastructure/Symfony/DependencyInjection/mb_services.yaml }
+
+services:
+  _defaults:
+    autoconfigure: true
+    autowire: true
+
+  # Configure
+  _instanceof:
+    MyBonsaiApi\Shared\Domain\Bus\Event\DomainEventSubscriber:
+      tags: ['mybonsaiapi.domain_event_subscriber']
+
+    MyBonsaiApi\Shared\Domain\Bus\Command\CommandHandler:
+      tags: ['mybonsaiapi.command_handler']
+
+    MyBonsaiApi\Shared\Domain\Bus\Query\QueryHandler:
+      tags: ['mybonsaiapi.query_handler']
+
+  MyBonsaiApi\Apps\Mb\Backend\Controller\:
+    resource: '../src/Controller'
+    tags: ['controller.service_arguments']
+
+  MyBonsaiApi\Apps\Mb\Backend\Command\:
+    resource: '../src/Command'
+    tags: ['console.command']
+
+  # Wire
+  MyBonsaiApi\Shared\:
+    resource: '../../../../src/Shared'
+
+  MyBonsaiApi\Mb\:
+    resource: '../../../../src/Mb'
+
+  # -- TAGGING --
+  MyBonsaiApi\Shared\Infrastructure\Bus\Event\InMemory\InMemorySymfonyEventBus:
+    arguments: [!tagged mybonsaiapi.domain_event_subscriber]
+    lazy: true
+
+  MyBonsaiApi\Shared\Infrastructure\Bus\Event\DomainEventMapping:
+    arguments: [!tagged mybonsaiapi.domain_event_subscriber]
+
+  MyBonsaiApi\Shared\Infrastructure\Bus\Event\DomainEventSubscriberLocator:
+    arguments: [!tagged mybonsaiapi.domain_event_subscriber]
+
+  MyBonsaiApi\Shared\Infrastructure\Doctrine\DatabaseConnections:
+    arguments: [!tagged mybonsaiapi.database_connection]
+
+  MyBonsaiApi\Shared\Infrastructure\Symfony\AddJsonBodyToRequestListener:
+    tags:
+      - { name: kernel.event_listener, event: kernel.request, method: onKernelRequest }
+
+  MyBonsaiApi\Shared\Infrastructure\Symfony\ApiExceptionListener:
+    tags:
+      - { name: kernel.event_listener, event: kernel.exception, method: onException }
+
+
+  # -- APP DEFINITIONS --
+  # Command/Query Handlers
+  MyBonsaiApi\Shared\Infrastructure\Bus\Command\InMemorySymfonyCommandBus:
+    arguments: [!tagged mybonsaiapi.command_handler]
+
+  MyBonsaiApi\Shared\Infrastructure\Bus\Query\InMemorySymfonyQueryBus:
+    arguments: [!tagged mybonsaiapi.query_handler]
+
+  # RabbitMQ
+  MyBonsaiApi\Shared\Infrastructure\Bus\Event\RabbitMq\RabbitMqConnection:
+    arguments:
+      - host: '%env(RABBITMQ_HOST)%'
+        port: '%env(RABBITMQ_PORT)%'
+        vhost: '%env(RABBITMQ_MB_VHOST)%'
+        login: '%env(RABBITMQ_LOGIN)%'
+        password: '%env(RABBITMQ_PASSWORD)%'
+        read_timeout: 2
+        write_timeout: 2
+        connect_timeout: 5
+
+  MyBonsaiApi\Shared\Infrastructure\Bus\Event\RabbitMq\RabbitMqEventBus:
+    arguments: ['@MyBonsaiApi\Shared\Infrastructure\Bus\Event\RabbitMq\RabbitMqConnection', '%env(RABBITMQ_EXCHANGE)%']
+
+  MyBonsaiApi\Shared\Infrastructure\Bus\Event\RabbitMq\RabbitMqDomainEventsConsumer:
+    arguments:
+      - '@MyBonsaiApi\Shared\Infrastructure\Bus\Event\RabbitMq\RabbitMqConnection'
+      - '@MyBonsaiApi\Shared\Infrastructure\Bus\Event\DomainEventJsonDeserializer'
+      - '%env(RABBITMQ_EXCHANGE)%'
+      - '%env(RABBITMQ_MAX_RETRIES)%'
+
+  MyBonsaiApi\Apps\Mb\Backend\Command\DomainEvents\RabbitMq\ConfigureRabbitMqCommand:
+    arguments:
+      - '@MyBonsaiApi\Shared\Infrastructure\Bus\Event\RabbitMq\RabbitMqConfigurer'
+      - '%env(RABBITMQ_EXCHANGE)%'
+      - !tagged mybonsaiapi.domain_event_subscriber
+
+
+  # -- IMPLEMENTATIONS SELECTOR --
+  MyBonsaiApi\Shared\Domain\Bus\Event\EventBus: '@MyBonsaiApi\Shared\Infrastructure\Bus\Event\RabbitMq\RabbitMqEventBus'

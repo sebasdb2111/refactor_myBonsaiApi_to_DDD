@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                          https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="MyBonsaiApi\Mb\Bonsais\Domain\Bonsai" table="bonsais">
+        <id name="id" type="bonsai_id" column="id" length="36" />
+
+        <embedded name="name" class="MyBonsaiApi\Mb\Bonsais\Domain\BonsaiName" use-column-prefix="false" />
+        <embedded name="type" class="MyBonsaiApi\Mb\Bonsais\Domain\BonsaiType" use-column-prefix="false" />
+        <embedded name="years" class="MyBonsaiApi\Mb\Bonsais\Domain\BonsaiYears" use-column-prefix="false" />
+    </entity>
+
+</doctrine-mapping>

@@ -1,0 +1,9 @@
+bonsais_put:
+    path: /bonsais/{id}
+    controller: MyBonsaiApi\Apps\Mb\Backend\Controller\Bonsais\BonsaisPutController
+    methods:  [PUT]
+
+bonsais_delete:
+    path: /bonsais/{id}
+    controller: MyBonsaiApi\Apps\Mb\Backend\Controller\Bonsais\BonsaisDeleteController
+    methods:  [DELETE]
